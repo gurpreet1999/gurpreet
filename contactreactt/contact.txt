@@ -1,0 +1,373 @@
+import { Box, Flex, Text, useDisclosure } from "@chakra-ui/react";
+import { Stack, HStack, VStack } from "@chakra-ui/react";
+import { Heading, Image } from "@chakra-ui/react";
+import { Input } from "@chakra-ui/react";
+import { InputGroup, InputLeftElement } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
+import "./App.css";
+import ContactCard from "./component/ContactCard";
+import logo from "./banner.png";
+import KModal from "./component/KModal";
+import axios from "axios";
+
+const App = () => {
+  const [user, setuser] = useState([]);
+  const [searchUser, setsearchUser] = useState([]);
+  
+  const [loading, setloading] = useState(false);
+  const [loadingmodal, setloadingmodal] = useState(false);
+  const [editedUser, seteditUser] = useState();
+
+  const postData = async (obj) => {
+    setloadingmodal(true);
+    const data = await fetch("https://jsonplaceholder.typicode.com/users", {
+      method: "POST",
+      body: JSON.stringify(obj),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
+
+    let response = await data.json();
+    console.log(response);
+
+    setuser([...user, response]);
+    setsearchUser([...user,response])
+    setloadingmodal(false);
+  };
+
+  const seteditedUser = (id) => {
+    let obj = user.find((item) => {
+      return item.id === id;
+    });
+
+    if (obj) {
+      seteditUser(obj);
+       onOpen();
+    }
+  };
+
+  const deleteData = async (id) => {
+    setloading(true);
+    const data = await axios.delete(
+      `https://jsonplaceholder.typicode.com/users/${id}`
+    );
+
+    if (data.status === 200) {
+      let Newuser = user.filter((item) => {
+        return item.id !== id;
+      });
+
+      setuser(Newuser);
+      setsearchUser(Newuser)
+      setloading(false);
+    }
+  };
+
+  const updateData = async (obj) => {
+    setloadingmodal(true);
+    const data = await fetch("https://jsonplaceholder.typicode.com/users/1", {
+      method: "put",
+
+      body: JSON.stringify(obj),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
+
+    const response = await data.json();
+
+    const array1 = user.map((item) => {
+      if (item.id === response.id) {
+        item.name = response.name;
+        item.email = response.email;
+        return item;
+      } else {
+        return item;
+      }
+    });
+
+    setuser(array1);
+    setsearchUser(array1)
+    setloadingmodal(false);
+  };
+
+  let fetchData = async () => {
+    try {
+      const data = await axios.get(
+        "https://jsonplaceholder.typicode.com/users"
+      );
+      setuser(data.data);
+      setsearchUser(data.data)
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchData();
+   
+  }, []);
+
+  const addContact = () => {
+    seteditUser();
+    onOpen();
+  };
+
+
+
+const SearchHandler=(value)=>{
+
+
+if(value){
+
+  let searchArray=user.filter((item)=>{
+    return item.name.toLowerCase().startsWith(value.toLowerCase())
+  }
+  )
+
+  setsearchUser(searchArray)
+}
+else{
+setsearchUser(user)
+}
+
+
+}
+
+
+
+
+
+
+
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  return (
+    <div className="app">
+      <KModal
+        loading={loadingmodal}
+        editedUser={editedUser}
+        updateData={updateData}
+        isOpen={isOpen}
+        onClose={onClose}
+        postData={postData}
+      ></KModal>
+
+      <Flex
+        boxShadow="xl"
+        direction={"column"}
+        bg={"white"}
+        w={"390px"}
+        h={"640px"}
+        gap={3}
+        p={4}
+        rounded={"3xl"}
+      >
+        <Flex height={"60px"} alignItems="center" gap={2}>
+          <Image w={"80px"} h={"60px"} src={logo}></Image>
+          <Heading as={"h6"} fontSize={"3xl"} ml={"-20px"}>
+            Contact App
+          </Heading>
+        </Flex>
+
+        <HStack
+          onClick={addContact}
+          sx={{ cursor: "pointer" }}
+          borderRadius={10}
+          gap={2}
+          p={4}
+          w="100%"
+          h="48px"
+          color={"whiteAlpha.900"}
+          bg={"purple.800"}
+        >
+          <i
+            style={{
+              border: "2px solid white",
+              borderRadius: "50%",
+              fontSize: "13px",
+              padding: "5px",
+            }}
+            className="fa-solid fa-plus"
+          ></i>
+          <Text
+            as="h1"
+            sx={{ fontSize: "21px", fontWeight: "600", cursor: "pointer" }}
+          >
+            {" "}
+            Add New Contact
+          </Text>
+        </HStack>
+
+        <Stack>
+          <InputGroup>
+            <InputLeftElement
+              pointerEvents="none"
+              children={<i className="fa-solid fa-magnifying-glass"></i>}
+            />
+            <Input
+              border={"1px solid gray"}
+              type="tel"
+              fontSize={"20px"}
+              fontWeight={"600"}
+              placeholder="Search Contact..."
+              onChange={(e)=>{SearchHandler(e.target.value)}}
+            />
+          </InputGroup>
+        </Stack>
+
+        <ContactCard
+          seteditedUser={seteditedUser}
+          loading={loading}
+          user={searchUser}
+          deleteData={deleteData}
+          onOpen={onOpen}
+        ></ContactCard>
+      </Flex>
+    </div>
+  );
+};
+
+export default App;
+
+
+
+import { Flex, flexbox, HStack, Spinner, Text } from '@chakra-ui/react'
+import { Stack } from '@chakra-ui/react'
+import { Heading } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
+import React from 'react'
+
+const ContactCard = ({onOpen,user,deleteData,loading,seteditedUser}) => {
+  return(
+ <Box p={1}  sx={{
+  '&::-webkit-scrollbar': {
+    width: '7px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: "#f1f1f1",
+    borderRadius:"25px"
+
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: "#ccc",
+    borderRadius: "25px"
+  },
+}} overflow={"auto"} >
+   {
+      user && user.map((item)=>(
+<Flex  key={item.id}  cursor={"pointer"} p={4} mb={2} borderRadius={10} justifyContent={'space-between'} color="whiteAlpha.900"  bg="purple.600" w="100%" h="60px" >
+
+<HStack size="xl"  >
+<i  style={{fontSize:"30px" ,color:"#6B46C1" ,background:"white" ,borderRadius:"50%",border:"1px solid white"}}    className="fa-sharp fa-solid fa-circle-user"></i>
+</HStack>
+
+< Flex ml={-5}  direction="column" justifyContent={"center"} columnGap={0}  >
+<Text as={"h1"}  sx={{fontSize:"17px"}} >{item.name}</Text>
+<Text as={"p"}   sx={{fontSize:"13px"}}  >{item.email}</Text>
+</Flex>
+
+<HStack>
+<Box  onClick={()=>{seteditedUser(item.id)}}  ><i  style={{fontSize:"21px"}}      className="fa-solid fa-pen-to-square"  ></i></Box>
+<Box onClick={()=>{deleteData(item.id)}}  >{!loading?(<i  style={{fontSize:"21px",color:"#FC8181"}}  className="fa-solid fa-trash"></i>):(<Spinner color='red.500' />)}  </Box>
+
+
+</HStack>
+   </Flex>
+      ))
+    }
+  
+  </Box>
+
+  ) 
+
+
+  
+}
+
+export default ContactCard
+
+
+
+import { Button, FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Spinner, useDisclosure } from '@chakra-ui/react'
+import React, { useEffect, useState } from 'react'
+
+const KModal = ({isOpen,onClose,postData,updateData,editedUser,loading}) => {
+
+
+const [name,setname]=useState()
+const [email,setemail]=useState()
+
+
+
+useEffect(()=>{
+
+  setname(editedUser?editedUser.name:"")
+  setemail(editedUser?editedUser.email:"")
+},[editedUser])
+
+const onSubmit=async ()=>{
+
+const obj={
+  "name":name,
+  "email":email
+}
+
+if(editedUser){
+  await updateData(obj)
+  onClose()
+  
+
+
+}
+
+else{
+await postData(obj)
+onClose()
+setemail("")
+setname("")
+
+}
+    
+}
+
+
+  return (
+    <Modal size={'sm'}
+    motionPreset='slideInBottom'
+    isOpen={isOpen}
+    onClose={onClose}
+    closeOnOverlayClick={false}
+    isCentered
+  >
+    <ModalOverlay />
+    <ModalContent>
+      <ModalHeader>Add New Contact</ModalHeader>
+      <ModalCloseButton sx={{border:"1px solid blue.600"}}   />
+      <ModalBody pb={6}>
+        <FormControl>
+          <FormLabel>Name</FormLabel>
+          <Input name='name' value={name}  onChange={(e)=>{setname(e.target.value)}} />
+        </FormControl>
+
+        <FormControl mt={4}>
+          <FormLabel  >Email address</FormLabel>
+          <Input name='email'  value={email} onChange={(e)=>{setemail(e.target.value)}} />
+        </FormControl>
+      </ModalBody>
+
+      <ModalFooter>
+
+        {
+          !loading?( <Button  onClick={onSubmit} bg='purple.600' color="white"   >
+          {editedUser?"Edit User":"Add Contact"}
+         </Button>):(<Spinner color='red.500' />)
+        }
+       
+        
+      </ModalFooter>
+    </ModalContent>
+  </Modal>
+  )
+}
+
+export default KModal
